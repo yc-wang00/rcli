@@ -11,6 +11,5 @@ fn main() -> anyhow::Result<()> {
             process_csv(&csv_opts.input, &csv_opts.output)?;
         }
     }
-
     Ok(())
 }
