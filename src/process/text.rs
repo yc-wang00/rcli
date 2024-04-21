@@ -211,7 +211,7 @@ pub fn process_text_sign(input: &str, key: &str, format: TextSignFormat) -> Resu
         }
         TextSignFormat::ChaCha20Poly1305 => {
             // not implemented
-            Vec::new()
+            panic!("Not implemented")
         }
     };
     let signed = URL_SAFE_NO_PAD.encode(signed);
@@ -238,7 +238,7 @@ pub fn process_text_verify(
         }
         TextSignFormat::ChaCha20Poly1305 => {
             // not implemented
-            false
+            panic!("Not implemented")
         }
     };
     Ok(verified)
