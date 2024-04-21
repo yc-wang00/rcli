@@ -1,12 +1,10 @@
-use std::fs;
-
 use clap::Parser;
-
 use rcli::{
-    process_csv, process_decode, process_encode, process_genpass, process_text_generate,
-    process_text_sign, process_text_verify, Base64SubCommand, Opts, SubCommand, TextSignFormat,
-    TextSubCommand,
+    process_csv, process_decode, process_encode, process_genpass, process_text_decrypt,
+    process_text_encrypt, process_text_generate, process_text_sign, process_text_verify,
+    Base64SubCommand, Opts, SubCommand, TextSignFormat, TextSubCommand,
 };
+use std::fs;
 
 fn main() -> anyhow::Result<()> {
     let opts = Opts::parse();
@@ -65,7 +63,23 @@ fn main() -> anyhow::Result<()> {
                         fs::write(name_private, &keys[0])?;
                         fs::write(name_public, &keys[1])?;
                     }
+                    TextSignFormat::ChaCha20Poly1305 => {
+                        let name = opts.output_path.join("chacha20-poly1305.txt");
+                        fs::write(name, &keys[0])?;
+                    }
                 }
+            }
+            TextSubCommand::Encrypt(opts) => {
+                let encrypted_text = process_text_encrypt(&opts.input, &opts.key)?;
+                // write to file
+                let name = opts.output_path.join("encrypted.txt");
+                fs::write(name, encrypted_text)?;
+            }
+            TextSubCommand::Decrypt(opts) => {
+                let decrypted_text = process_text_decrypt(&opts.input, &opts.key)?;
+                // write to file
+                let name = opts.output_path.join("decrypted.txt");
+                fs::write(name, decrypted_text)?;
             }
         },
     }

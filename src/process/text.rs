@@ -7,6 +7,11 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use rand::rngs::OsRng;
 
+use chacha20poly1305::{
+    aead::{generic_array::GenericArray, Aead, AeadCore, KeyInit},
+    ChaCha20Poly1305, Key,
+};
+
 pub trait TextSign {
     /// Sign the data from the reader and return the signature
     fn sign(&self, reader: &mut dyn Read) -> Result<Vec<u8>>;
@@ -46,6 +51,16 @@ impl KeyGenerator for Ed25519Signer {
     }
 }
 
+impl KeyGenerator for ChaCha20Poly1305 {
+    fn generate() -> Result<Vec<Vec<u8>>> {
+        let key = ChaCha20Poly1305::generate_key(&mut OsRng);
+
+        // convert key to Vec<u8>
+        let key = key.as_slice().to_vec();
+        Ok(vec![key])
+    }
+}
+
 impl KeyLoader for Blake3 {
     fn load(path: impl AsRef<Path>) -> Result<Self> {
         let key = fs::read(path)?;
@@ -61,6 +76,13 @@ impl KeyLoader for Ed25519Signer {
 }
 
 impl KeyLoader for Ed25519Verifier {
+    fn load(path: impl AsRef<Path>) -> Result<Self> {
+        let key = fs::read(path)?;
+        Self::try_new(&key)
+    }
+}
+
+impl KeyLoader for ChaCha20Poly1305Signer {
     fn load(path: impl AsRef<Path>) -> Result<Self> {
         let key = fs::read(path)?;
         Self::try_new(&key)
@@ -102,49 +124,9 @@ pub struct Ed25519Verifier {
     key: VerifyingKey,
 }
 
-pub fn process_text_sign(input: &str, key: &str, format: TextSignFormat) -> Result<String> {
-    let mut reader = get_reader(input)?;
-    let signed = match format {
-        TextSignFormat::Blake3 => {
-            let signer: Blake3 = Blake3::load(key)?;
-            signer.sign(&mut reader)?
-        }
-        TextSignFormat::Ed25519 => {
-            let signer: Ed25519Signer = Ed25519Signer::load(key)?;
-            signer.sign(&mut reader)?
-        }
-    };
-    let signed = URL_SAFE_NO_PAD.encode(signed);
-    Ok(signed)
-}
-
-pub fn process_text_verify(
-    input: &str,
-    key: &str,
-    sig: &str,
-    format: TextSignFormat,
-) -> Result<bool> {
-    let mut reader = get_reader(input)?;
-    let signature = URL_SAFE_NO_PAD.decode(sig.as_bytes())?;
-
-    let verified = match format {
-        TextSignFormat::Blake3 => {
-            let verifier: Blake3 = Blake3::load(key)?;
-            verifier.verify(&mut reader, &signature)?
-        }
-        TextSignFormat::Ed25519 => {
-            let verifier: Ed25519Verifier = Ed25519Verifier::load(key)?;
-            verifier.verify(&mut reader, &signature)?
-        }
-    };
-    Ok(verified)
-}
-
-pub fn process_text_generate(format: TextSignFormat) -> Result<Vec<Vec<u8>>> {
-    match format {
-        TextSignFormat::Blake3 => Blake3::generate(),
-        TextSignFormat::Ed25519 => Ed25519Signer::generate(),
-    }
+#[derive(Debug, Clone, Copy)]
+pub struct ChaCha20Poly1305Signer {
+    key: [u8; 32],
 }
 
 impl TextSign for Ed25519Signer {
@@ -204,32 +186,150 @@ impl Ed25519Verifier {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    // use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+impl ChaCha20Poly1305Signer {
+    pub fn new(key: [u8; 32]) -> Self {
+        Self { key }
+    }
 
-    // const KEY: &[u8] = include_bytes!("../../fixtures/blake3.txt");
-
-    // #[test]
-    // fn test_process_text_sign() -> Result<()> {
-    //     let mut reader = "hello".as_bytes();
-    //     let mut reader1 = "hello".as_bytes();
-    //     let format = TextSignFormat::Blake3;
-    //     let sig = process_text_sign(&mut reader, KEY, format)?;
-    //     let ret = process_text_verify(&mut reader1, KEY, &sig, format)?;
-    //     assert!(ret);
-    //     Ok(())
-    // }
-
-    #[test]
-    fn test_process_text_verify() -> Result<()> {
-        let sk = Ed25519Signer::load("fixtures/ed25519.private")?;
-        let pk = Ed25519Verifier::load("fixtures/ed25519.public")?;
-
-        let data = b"hello";
-        let signature = sk.sign(&mut &data[..])?;
-        assert!(pk.verify(&mut &data[..], &signature)?);
-        Ok(())
+    pub fn try_new(key: &[u8]) -> Result<Self> {
+        let key = &key[..32];
+        let key = key.try_into()?;
+        Ok(Self::new(key))
     }
 }
+
+pub fn process_text_sign(input: &str, key: &str, format: TextSignFormat) -> Result<String> {
+    let mut reader = get_reader(input)?;
+    let signed = match format {
+        TextSignFormat::Blake3 => {
+            let signer: Blake3 = Blake3::load(key)?;
+            signer.sign(&mut reader)?
+        }
+        TextSignFormat::Ed25519 => {
+            let signer: Ed25519Signer = Ed25519Signer::load(key)?;
+            signer.sign(&mut reader)?
+        }
+        TextSignFormat::ChaCha20Poly1305 => {
+            // not implemented
+            Vec::new()
+        }
+    };
+    let signed = URL_SAFE_NO_PAD.encode(signed);
+    Ok(signed)
+}
+
+pub fn process_text_verify(
+    input: &str,
+    key: &str,
+    sig: &str,
+    format: TextSignFormat,
+) -> Result<bool> {
+    let mut reader = get_reader(input)?;
+    let signature = URL_SAFE_NO_PAD.decode(sig.as_bytes())?;
+
+    let verified = match format {
+        TextSignFormat::Blake3 => {
+            let verifier: Blake3 = Blake3::load(key)?;
+            verifier.verify(&mut reader, &signature)?
+        }
+        TextSignFormat::Ed25519 => {
+            let verifier: Ed25519Verifier = Ed25519Verifier::load(key)?;
+            verifier.verify(&mut reader, &signature)?
+        }
+        TextSignFormat::ChaCha20Poly1305 => {
+            // not implemented
+            false
+        }
+    };
+    Ok(verified)
+}
+
+pub fn process_text_generate(format: TextSignFormat) -> Result<Vec<Vec<u8>>> {
+    match format {
+        TextSignFormat::Blake3 => Blake3::generate(),
+        TextSignFormat::Ed25519 => Ed25519Signer::generate(),
+        TextSignFormat::ChaCha20Poly1305 => ChaCha20Poly1305::generate(),
+    }
+}
+
+pub fn process_text_encrypt(input: &str, key: &str) -> Result<String> {
+    let mut reader = get_reader(input)?;
+    let mut buf = Vec::new();
+    reader.read_to_end(&mut buf)?;
+
+    // convert key from &str to &[u8]
+    let key = ChaCha20Poly1305Signer::load(key)?;
+
+    // // convert key to GenericArray
+    let key = Key::from_slice(&key.key);
+
+    let cipher = ChaCha20Poly1305::new(key);
+    let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
+
+    // encrypt here
+    let ciphertext = cipher.encrypt(&nonce, buf.as_ref()).unwrap();
+
+    // encode to base64
+    let nonce_b64 = URL_SAFE_NO_PAD.encode(nonce);
+    let ciphertext_b64 = URL_SAFE_NO_PAD.encode(ciphertext);
+
+    // concatenate nonce and ciphertext
+    Ok(format!("{}:{}", nonce_b64, ciphertext_b64))
+}
+
+pub fn process_text_decrypt(input: &str, key: &str) -> Result<String> {
+    let mut reader = get_reader(input)?;
+    let mut buf = Vec::new();
+    reader.read_to_end(&mut buf)?;
+
+    let buf = String::from_utf8(buf).unwrap();
+    // split nonce and ciphertext
+    let parts: Vec<&str> = buf.split(':').collect();
+    let nonce = URL_SAFE_NO_PAD.decode(parts[0].as_bytes())?;
+    let ciphertext = URL_SAFE_NO_PAD.decode(parts[1].as_bytes())?;
+
+    // Load key
+    let key = ChaCha20Poly1305Signer::load(key)?;
+
+    // convert key to GenericArray
+    let key = Key::from_slice(&key.key);
+
+    let cipher = ChaCha20Poly1305::new(key);
+    let nonce = GenericArray::from_slice(&nonce);
+
+    let plaintext = cipher.decrypt(nonce, ciphertext.as_ref()).unwrap();
+
+    // convert plaintext to String
+    let plaintext = String::from_utf8(plaintext).unwrap();
+    Ok(plaintext)
+}
+
+// #[cfg(test)]
+// mod tests {
+// use super::*;
+// use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+
+// const KEY: &[u8] = include_bytes!("../../fixtures/blake3.txt");
+
+// #[test]
+// fn test_process_text_sign() -> Result<()> {
+//     let mut reader = "hello".as_bytes();
+//     let mut reader1 = "hello".as_bytes();
+//     let format = TextSignFormat::Blake3;
+//     let sig = process_text_sign(&mut reader, KEY, format)?;
+//     let ret = process_text_verify(&mut reader1, KEY, &sig, format)?;
+//     assert!(ret);
+//     Ok(())
+// }
+
+// #[test]
+// fn test_process_text_verify() -> Result<()> {
+//     let sk = Ed25519Signer::load("fixtures/ed25519.private")?;
+//     let pk = Ed25519Verifier::load("fixtures/ed25519.public")?;
+
+//     let data = b"hello";
+//     let signature = sk.sign(&mut &data[..])?;
+//     assert!(pk.verify(&mut &data[..], &signature)?);
+//     Ok(())
+// }
+// }
