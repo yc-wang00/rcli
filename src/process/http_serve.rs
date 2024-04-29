@@ -7,6 +7,7 @@ use axum::{
     routing::get,
     Router,
 };
+use tower_http::services::ServeDir;
 use tracing::info;
 
 #[derive(Debug)]
@@ -21,10 +22,11 @@ pub async fn process_http_serve(path: PathBuf, port: u16) -> Result<()> {
     info!("Serving directory {:?} on port {}", path, port);
 
     // create a state to pass to the handler
-    let state = HttpServeState { path };
+    let state = HttpServeState { path: path.clone() };
 
     let router = Router::new()
         .route("/*path", get(file_handler))
+        .nest_service("/tower", ServeDir::new(path))
         .with_state(Arc::new(state));
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
@@ -56,5 +58,23 @@ async fn file_handler(
                 )
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_file_handler() {
+        let state = HttpServeState {
+            path: PathBuf::from("."),
+        };
+        let state = Arc::new(state);
+
+        let (status, content) = file_handler(State(state), Path("Cargo.toml".to_string())).await;
+
+        assert_eq!(status, StatusCode::OK);
+        assert!(content.contains("[package]\nname = \"rcli\"\nversion = \"0.1.0\""));
     }
 }
