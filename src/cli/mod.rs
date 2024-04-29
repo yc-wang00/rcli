@@ -5,6 +5,9 @@ mod http;
 mod text;
 
 use std::path::{Path, PathBuf};
+use anyhow::Result;
+use enum_dispatch::enum_dispatch;
+use crate::CmdExector;
 
 use self::{csv::CsvOpts, genpass::GenPassOpts};
 
@@ -26,6 +29,7 @@ pub struct Opts {
 }
 
 #[derive(Debug, Parser)]
+#[enum_dispatch(CmdExector)]
 pub enum SubCommand {
     #[command(name = "csv", about = "Show CSV, or convert CSV to JSON")]
     Csv(CsvOpts),
@@ -61,6 +65,7 @@ fn verify_path(path: &str) -> Result<PathBuf, &'static str> {
         Err("Path does not exist")
     }
 }
+
 
 #[cfg(test)]
 mod tests {
