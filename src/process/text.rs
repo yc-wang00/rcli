@@ -251,7 +251,9 @@ pub fn process_text_generate(format: TextSignFormat) -> Result<Vec<Vec<u8>>> {
         TextSignFormat::ChaCha20Poly1305 => ChaCha20Poly1305::generate(),
     }
 }
-
+// ===================
+// Coursework 1
+// ===================
 pub fn process_text_encrypt(input: &str, key: &str) -> Result<String> {
     let mut reader = get_reader(input)?;
     let mut buf = Vec::new();
