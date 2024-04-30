@@ -60,7 +60,7 @@ mod tests {
         )?;
 
         let mut validation = Validation::default();
-        validation.set_audience(&["me, device1"]);
+        validation.set_audience(&["me", "device1"]);
         let token_data = decode::<Claims>(&token, &DecodingKey::from_secret(key), &validation)?;
 
         assert!(token_data.claims.aud == "me");
