@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use crate::{process_jwt_sign, process_jwt_verify, CmdExector};
 use anyhow::Ok;
 use clap::Parser;
@@ -25,9 +23,6 @@ pub struct JWTSignOpts {
 
     #[arg(short, long)]
     pub exp: usize,
-
-    #[arg(short, long, default_value = "fixtures/jwt.txt")]
-    pub key: PathBuf,
 }
 
 #[derive(Debug, Parser)]
@@ -35,7 +30,7 @@ pub struct JWTVerifyOpts {
     #[arg(short, long)]
     pub token: String,
 
-    #[arg(short, long, default_value = "fixtures/jwt.txt")]
+    #[arg(short, long, default_value = "me")]
     pub valid_aud: String,
 }
 
