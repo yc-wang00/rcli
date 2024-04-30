@@ -44,7 +44,7 @@ impl KeyLoader for Ed25519Signer {
 impl KeyLoader for Ed25519Verifier {
     fn load(path: impl AsRef<Path>) -> Result<Self> {
         let key = fs::read(path)?;
-        Self::try_new(&key)
+        Self::try_new(key)
     }
 }
 
