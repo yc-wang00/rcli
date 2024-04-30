@@ -152,10 +152,6 @@ impl Ed25519Signer {
 }
 
 impl Ed25519Verifier {
-    pub fn new(key: VerifyingKey) -> Self {
-        Self { key }
-    }
-
     pub fn try_new(key: impl AsRef<[u8]>) -> Result<Self> {
         let key = key.as_ref();
         let key = (&key[..32]).try_into()?;
@@ -302,6 +298,25 @@ mod tests {
         let sig = URL_SAFE_NO_PAD.decode(sig)?;
         let ret = process_text_verify(&mut reader, KEY, &sig, format)?;
         assert!(ret);
+        Ok(())
+    }
+
+    #[test]
+    fn test_process_text_encrypt_decrypt() -> Result<()> {
+        let input = "fixtures/test_encrypt.txt";
+        let key = "fixtures/chacha20-poly1305.txt";
+
+        // test encrypt
+        let ret = process_text_encrypt(input, key)?;
+        fs::write("fixtures/encrypted.txt", ret).unwrap();
+
+        // test decrypt
+        let ret = process_text_decrypt("fixtures/encrypted.txt", key)?;
+        assert_eq!(ret, "This is a test");
+
+        // cleanup
+        fs::remove_file("fixtures/encrypted.txt")?;
+
         Ok(())
     }
 }
