@@ -2,6 +2,7 @@ pub mod base64;
 pub mod csv;
 pub mod genpass;
 pub mod http;
+pub mod jwt;
 pub mod text;
 
 use anyhow::Result;
@@ -9,7 +10,7 @@ use clap::Parser;
 use enum_dispatch::enum_dispatch;
 use std::path::{Path, PathBuf};
 
-pub use self::{base64::*, csv::*, genpass::*, http::*, text::*};
+pub use self::{base64::*, csv::*, genpass::*, http::*, jwt::*, text::*};
 
 // rcli csv -i input.csv -o output.json --header -d ','
 #[derive(Debug, Parser)]
@@ -36,6 +37,9 @@ pub enum SubCommand {
 
     #[command(subcommand)]
     Http(HttpSubCommand),
+
+    #[command(subcommand)]
+    JWT(JWTSubCommand),
 }
 
 fn verify_file(filename: &str) -> Result<String, &'static str> {
