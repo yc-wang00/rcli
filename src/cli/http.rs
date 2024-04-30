@@ -21,10 +21,8 @@ pub struct HttpServeOpts {
     pub port: u16,
 }
 
-
 impl CmdExector for HttpServeOpts {
     async fn execute(self) -> anyhow::Result<()> {
         process_http_serve(self.dir, self.port).await
     }
 }
-

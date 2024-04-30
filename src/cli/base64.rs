@@ -3,9 +3,9 @@ use std::str::FromStr;
 use clap::Parser;
 use enum_dispatch::enum_dispatch;
 
-use crate::{process_decode, process_encode, CmdExector};
-use anyhow::Result;
 use super::verify_file;
+use crate::CmdExector;
+use anyhow::Result;
 
 #[derive(Debug, Parser)]
 #[enum_dispatch(CmdExector)]
@@ -44,7 +44,6 @@ pub enum Base64Format {
 fn parse_base64_format(format: &str) -> Result<Base64Format, anyhow::Error> {
     format.parse()
 }
-
 
 impl From<Base64Format> for &'static str {
     fn from(format: Base64Format) -> Self {

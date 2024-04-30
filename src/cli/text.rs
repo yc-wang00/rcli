@@ -1,13 +1,14 @@
-use crate::{get_content, get_reader, process_text_sign, process_text_verify, CmdExector};
+use crate::{
+    get_content, get_reader, process_text_decrypt, process_text_encrypt, process_text_key_generate,
+    process_text_sign, process_text_verify, CmdExector,
+};
 
 use super::{verify_file, verify_path};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use clap::Parser;
 use enum_dispatch::enum_dispatch;
-use tokio::fs;
 use std::{fmt, path::PathBuf, str::FromStr};
-
-
+use tokio::fs;
 
 #[derive(Debug, Parser)]
 #[enum_dispatch(CmdExector)]
@@ -127,6 +128,7 @@ impl fmt::Display for TextSignFormat {
         write!(f, "{}", Into::<&str>::into(*self))
     }
 }
+
 impl CmdExector for TextSignOpts {
     async fn execute(self) -> anyhow::Result<()> {
         let mut reader = get_reader(&self.input)?;
@@ -154,12 +156,32 @@ impl CmdExector for TextVerifyOpts {
     }
 }
 
-
 impl CmdExector for KeyGenerateOpts {
     async fn execute(self) -> anyhow::Result<()> {
         let key = process_text_key_generate(self.format)?;
-        
+        for (k, v) in key {
+            fs::write(self.output_path.join(k), v).await?;
+        }
+        Ok(())
+    }
+}
 
+impl CmdExector for TextEncryptOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let encrypted_text = process_text_encrypt(&self.input, &self.key)?;
+        // // write to file
+        let name = self.output_path.join("encrypted.txt");
+        fs::write(name, encrypted_text).await?;
+        Ok(())
+    }
+}
+
+impl CmdExector for TextDecryptOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        // let encrypted_text = get_content(&self.input)?;
+        let decrypted_text = process_text_decrypt(&self.input, &self.key)?;
+        // write to file
+        fs::write(self.output_path.join("decrypted.txt"), decrypted_text).await?;
         Ok(())
     }
 }

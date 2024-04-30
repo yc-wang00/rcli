@@ -1,24 +1,15 @@
-mod base64;
-mod csv;
-mod genpass;
-mod http;
-mod text;
+pub mod base64;
+pub mod csv;
+pub mod genpass;
+pub mod http;
+pub mod text;
 
-use std::path::{Path, PathBuf};
 use anyhow::Result;
-use enum_dispatch::enum_dispatch;
-use crate::CmdExector;
-
-use self::{csv::CsvOpts, genpass::GenPassOpts};
-
 use clap::Parser;
+use enum_dispatch::enum_dispatch;
+use std::path::{Path, PathBuf};
 
-pub use self::{
-    base64::{Base64Format, Base64SubCommand},
-    csv::OutputFormat,
-    http::HttpSubCommand,
-    text::{TextSignFormat, TextSubCommand},
-};
+pub use self::{base64::*, csv::*, genpass::*, http::*, text::*};
 
 // rcli csv -i input.csv -o output.json --header -d ','
 #[derive(Debug, Parser)]
@@ -65,7 +56,6 @@ fn verify_path(path: &str) -> Result<PathBuf, &'static str> {
         Err("Path does not exist")
     }
 }
-
 
 #[cfg(test)]
 mod tests {

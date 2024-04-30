@@ -1,4 +1,4 @@
-use crate::{Base64Format};
+use crate::Base64Format;
 use anyhow::Result;
 use base64::{
     engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD},
@@ -35,17 +35,24 @@ pub fn process_decode(reader: &mut dyn Read, format: Base64Format) -> Result<Str
 mod tests {
     use super::*;
 
+    use crate::get_reader;
+
     #[test]
-    fn test_process_encode() {
-        let input = "fixtures/b64.txt";
-        let format = Base64Format::UrlSafe;
-        assert!(process_encode(input, format).is_ok());
+    fn test_process_encode() -> Result<()> {
+        let input = "Cargo.toml";
+        let mut reader = get_reader(input)?;
+        let format = Base64Format::Standard;
+        assert!(process_encode(&mut reader, format).is_ok());
+        Ok(())
     }
 
     #[test]
-    fn test_process_decode() {
+    fn test_process_decode() -> Result<()> {
         let input = "fixtures/b64.txt";
+        let mut reader = get_reader(input)?;
         let format = Base64Format::UrlSafe;
-        assert!(process_decode(input, format).is_ok());
+        process_decode(&mut reader, format)?;
+
+        Ok(())
     }
 }

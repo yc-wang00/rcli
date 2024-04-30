@@ -149,7 +149,6 @@ impl Ed25519Signer {
 
         Ok(map)
     }
-
 }
 
 impl Ed25519Verifier {
@@ -187,7 +186,6 @@ impl ChaCha20Poly1305Signer {
     }
 }
 
-
 pub fn process_text_sign(
     reader: &mut dyn Read,
     key: &[u8], // (ptr, length)
@@ -202,7 +200,6 @@ pub fn process_text_sign(
     signer.sign(reader)
 }
 
-
 pub fn process_text_verify(
     reader: &mut dyn Read,
     key: &[u8],
@@ -216,7 +213,6 @@ pub fn process_text_verify(
     };
     verifier.verify(reader, sig)
 }
-
 
 pub fn process_text_key_generate(format: TextSignFormat) -> Result<HashMap<&'static str, Vec<u8>>> {
     match format {
@@ -279,7 +275,6 @@ pub fn process_text_decrypt(input: &str, key: &str) -> Result<String> {
     let plaintext = String::from_utf8(plaintext).unwrap();
     Ok(plaintext)
 }
-
 
 #[cfg(test)]
 mod tests {

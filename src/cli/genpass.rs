@@ -1,5 +1,5 @@
-use clap::Parser;
 use anyhow::Result;
+use clap::Parser;
 
 use crate::{process_genpass, CmdExector};
 
